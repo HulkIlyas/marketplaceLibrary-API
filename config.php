@@ -38,7 +38,7 @@ session_start();
 
 // ---- Database -----------------------------------------------------------
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'login_demo');
+define('DB_NAME', 'marketplace_library');
 define('DB_USER', 'root');
 define('DB_PASS', 'ilyas');
 
