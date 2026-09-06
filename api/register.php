@@ -1,43 +1,68 @@
 <?php
-require __DIR__ . '/../config.php';
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    json_response(['error' => 'Method not allowed'], 405);
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
 
-$body = get_json_body();
-$name = trim($body['name'] ?? '');
-$email = trim($body['email'] ?? '');
-$password = $body['password'] ?? '';
+// Include database configuration
+require_once '../config.php';
 
-if ($name === '' || $email === '' || $password === '') {
-    json_response(['error' => 'All fields are required'], 422);
+// Get JSON input body
+$data = json_decode(file_get_contents('php://input'), true);
+
+$name = $data['name'] ?? null;
+$email = $data['email'] ?? null;
+$password = $data['password'] ?? null;
+
+if (!$name || !$email || !$password) {
+    http_response_code(400);
+    echo json_encode(['message' => 'All fields are required.']);
+    exit();
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    json_response(['error' => 'Invalid email address'], 422);
-}
-
-if (strlen($password) < 6) {
-    json_response(['error' => 'Password must be at least 6 characters'], 422);
-}
-
+// Check for existing duplicate email
 $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
 $stmt->execute([$email]);
 
 if ($stmt->fetch()) {
-    json_response(['error' => 'Email already exists'], 409);
+    http_response_code(409);
+    echo json_encode(['message' => 'Email is already registered.']);
+    exit();
 }
 
-$hashed = password_hash($password, PASSWORD_DEFAULT);
-$stmt = $pdo->prepare(
-    "INSERT INTO users (name, email, password) VALUES (?, ?, ?)"
-);
+// pasword strong 
+if (!$name || !$email || !$password) {
+    http_response_code(400);
+    echo json_encode(['message' => 'All fields are required.']);
+    exit();
+}
 
-$stmt->execute([
-    $name,
-    $email,
-    $hashed
-]);
+// Password strength check: min 6 chars, at least 1 letter and 1 number
+if (strlen($password) < 6) {
+    http_response_code(400);
+    echo json_encode(['message' => 'Password must be at least 6 characters long.']);
+    exit();
+}
 
-json_response(['message' => 'Account created successfully'], 201);
+if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+    http_response_code(400);
+    echo json_encode(['message' => 'Password must contain at least one letter and one number.']);
+    exit();
+}
+
+// Hash password and insert user
+$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+$insertStmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+
+if ($insertStmt->execute([$name, $email, $hashedPassword])) {
+    http_response_code(201);
+    echo json_encode(['message' => 'User registered successfully!']);
+} else {
+    http_response_code(500);
+    echo json_encode(['message' => 'Failed to register user.']);
+}
+

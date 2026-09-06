@@ -1,31 +1,33 @@
 <?php
-require __DIR__ . '/../config.php';
+require_once '../config.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    json_response(['error' => 'Method not allowed'], 405);
+$data = json_decode(file_get_contents('php://input'), true);
+
+$email = $data['email'] ?? null;
+$password = $data['password'] ?? null;
+
+if (!$email || !$password) {
+    http_response_code(400);
+    echo json_encode(['message' => 'Email and password are required.']);
+    exit();
 }
 
-$body = get_json_body();
-$username = trim($body['username'] ?? '');
-$password = $body['password'] ?? '';
-
-if ($username === '' || $password === '') {
-    json_response(['error' => 'Username and password are required'], 422);
-}
-
-$stmt = $pdo->prepare("SELECT id, username, password FROM users WHERE username = ?");
-$stmt->execute([$username]);
+$stmt = $pdo->prepare("SELECT id, name, email, password FROM users WHERE email = ?");
+$stmt->execute([$email]);
 $user = $stmt->fetch();
 
 if (!$user || !password_verify($password, $user['password'])) {
-    json_response(['error' => 'Invalid username or password'], 401);
+    http_response_code(401);
+    echo json_encode(['message' => 'Invalid email or password.']);
+    exit();
 }
 
-session_regenerate_id(true);
-$_SESSION['user_id']  = $user['id'];
-$_SESSION['username'] = $user['username'];
-
-json_response([
-    'message' => 'Login successful',
-    'user' => ['id' => $user['id'], 'username' => $user['username']],
+http_response_code(200);
+echo json_encode([
+    'message' => 'Login successful!',
+    'user' => [
+        'id' => $user['id'],
+        'name' => $user['name'],
+        'email' => $user['email']
+    ]
 ]);
