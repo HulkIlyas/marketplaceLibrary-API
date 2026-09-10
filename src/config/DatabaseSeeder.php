@@ -40,7 +40,7 @@ class DatabaseSeeder
                 'email'             => 'admin@marketplace.com',
                 'password'          => password_hash('password123', PASSWORD_BCRYPT),
                 'is_active'         => 1,
-                'email_verified_at' => date('Y-m-d H:i:s'),
+                'email_verified_at' => date('Y-m-d H:i:s')
             ],
             [
                 'name'              => 'John Doe',

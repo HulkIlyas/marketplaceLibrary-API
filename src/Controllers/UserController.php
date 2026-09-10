@@ -88,7 +88,7 @@ class UserController
         try {
 
             if ($id !== null) {
-                $stmt = $this->db->prepare("SELECT id, name, email, created_at FROM users WHERE id = :id");
+                $stmt = $this->db->prepare("SELECT * FROM users WHERE id = :id");
                 $stmt->execute(['id' => $id]);
                 $user = $stmt->fetch();
 
@@ -103,7 +103,7 @@ class UserController
             }
 
             // Get all users
-            $stmt = $this->db->query("SELECT id, name, email, created_at FROM users ORDER BY id DESC");
+            $stmt = $this->db->query("SELECT * FROM users ORDER BY id DESC");
             $users = $stmt->fetchAll();
 
             echo json_encode(["data" => $users]);
@@ -120,7 +120,6 @@ class UserController
     public function create(array $data): void
     {
 
-        $currentUser = AuthMiddleware::authenticate();
         // Simple Validation
         if (empty($data['name']) || empty($data['email']) || empty($data['password'])) {
             http_response_code(400);
@@ -143,6 +142,7 @@ class UserController
                 'name'     => $data['name'],
                 'email'    => $data['email'],
                 'password' => $hashedPassword,
+                // enable
             ]);
 
             $newId = $this->db->lastInsertId();
