@@ -6,7 +6,7 @@ echo "Starting Database Migration...\n";
 
 $host   = 'localhost';
 $user   = 'root';
-$pass   = 'secret123'; // Replace with your MySQL password
+$pass   = ''; // Replace with your MySQL password
 $dbName = 'project';   // Set to your project database
 
 try {

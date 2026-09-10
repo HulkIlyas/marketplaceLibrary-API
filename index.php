@@ -1,7 +1,20 @@
 <?php
+// 1. Get origin dynamically from request headers
+$origin = $_SERVER['HTTP_ORIGIN'] ?? 'http://localhost:8001';
+
+// 2. Send dynamic CORS headers
+header("Access-Control-Allow-Origin: $origin");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Credentials: true");
+
+// 3. Immediately exit for preflight OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 header("Content-Type: application/json; charset=UTF-8");
-
 require_once __DIR__ . '/autoloader.php';
 
 // Parse Request Method & URI Path
@@ -25,16 +38,23 @@ if (($normalizedPath === '/login' || $normalizedPath === '/users/login') && $met
 // 2. Clean up path slashes to extract the resource
 $uriSegments = array_values(array_filter(explode('/', trim($path, '/'))));
 $resource    = end($uriSegments);
+// $resource = substr($resource, 22);
 
-if (empty($resource) || $resource === 'index.php') {
+if (
+    empty($resource) || $resource === 'index.php'
+    || $resource === ''
+) {
     http_response_code(200);
     echo json_encode(["message" => "API is running"]);
     exit;
 }
 
 // 3. Map URI resource (e.g. "users") to Controller Class (e.g. "UserController")
+
+
 $singularResource = (substr($resource, -1) === 's') ? substr($resource, 0, -1) : $resource;
 $controllerName   = ucfirst($singularResource) . 'Controller';
+
 $controllerClass  = "App\\Controllers\\" . $controllerName;
 
 // Check if Controller Class exists
