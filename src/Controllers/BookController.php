@@ -24,22 +24,7 @@ class BookController
         try {
             if ($id !== null) {
                 $stmt = $this->db->prepare("
-                SELECT 
-                    b.id, 
-                    b.title, 
-                    b.author, 
-                    b.price, 
-                    b.book_condition, 
-                    b.listing_type, 
-                    b.edition, 
-                    b.cover_color, 
-                    b.cover_image, 
-                    b.owner_id, 
-                    u.name AS owner_name, 
-                    b.category_id, 
-                    c.name AS category_name, 
-                    c.slug AS category_slug, 
-                    b.created_at 
+                SELECT b.*, u.name AS owner_name, c.name AS category_name, c.slug AS category_slug 
                 FROM books b 
                 INNER JOIN users u ON b.owner_id = u.id 
                 LEFT JOIN categories c ON b.category_id = c.id 
@@ -58,55 +43,69 @@ class BookController
                 return;
             }
 
-            // Base query for fetching all books
-            $sql = "
-            SELECT 
-                b.id, 
-                b.title, 
-                b.author, 
-                b.price, 
-                b.book_condition, 
-                b.listing_type, 
-                b.edition, 
-                b.cover_color, 
-                b.cover_image, 
-                b.owner_id, 
-                u.name AS owner_name, 
-                b.category_id, 
-                c.name AS category_name, 
-                c.slug AS category_slug, 
-                b.created_at 
-            FROM books b 
-            INNER JOIN users u ON b.owner_id = u.id 
-            LEFT JOIN categories c ON b.category_id = c.id 
-            WHERE 1=1
-        ";
+            // Pagination parameters
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $limit = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 6;
+            $offset = ($page - 1) * $limit;
 
+            // Base query conditions
+            $whereSql = " WHERE 1=1";
             $params = [];
 
-            // Dynamic Filtering matching UI Sidebar (Category, Condition, Type)
             if (!empty($_GET['category'])) {
-                $sql .= " AND c.slug = :category";
+                $whereSql .= " AND c.slug = :category";
                 $params['category'] = $_GET['category'];
             }
 
             if (!empty($_GET['condition'])) {
-                $sql .= " AND b.book_condition = :condition";
+                $whereSql .= " AND b.book_condition = :condition";
                 $params['condition'] = $_GET['condition'];
             }
 
             if (!empty($_GET['type'])) {
-                $sql .= " AND b.listing_type = :type";
+                $whereSql .= " AND b.listing_type = :type";
                 $params['type'] = $_GET['type'];
             }
 
-            $sql .= " ORDER BY b.id DESC";
+            // 1. Get Total Count
+            $countSql = "SELECT COUNT(b.id) FROM books b LEFT JOIN categories c ON b.category_id = c.id" . $whereSql;
+            $countStmt = $this->db->prepare($countSql);
+            $countStmt->execute($params);
+            $totalItems = (int)$countStmt->fetchColumn();
+
+            // 2. Fetch Paginated Records
+            $sql = "
+            SELECT b.*, u.name AS owner_name, c.name AS category_name, c.slug AS category_slug 
+            FROM books b 
+            INNER JOIN users u ON b.owner_id = u.id 
+            LEFT JOIN categories c ON b.category_id = c.id 
+            {$whereSql}
+            ORDER BY b.id DESC
+            LIMIT :limit OFFSET :offset
+        ";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
+
+            foreach ($params as $key => $val) {
+                $stmt->bindValue(":$key", $val);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+            $stmt->execute();
             $books = $stmt->fetchAll();
 
-            echo json_encode(["data" => $books]);
+            $totalPages = ceil($totalItems / $limit);
+
+            echo json_encode([
+                "data" => $books,
+                "pagination" => [
+                    "current_page" => $page,
+                    "limit"        => $limit,
+                    "total_items"  => $totalItems,
+                    "total_pages"  => $totalPages
+                ]
+            ]);
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(["error" => $e->getMessage()]);
