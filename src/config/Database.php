@@ -16,7 +16,7 @@ class Database
             $host    = 'localhost';
             $db      =  'project';
             $user    =  'root';
-            $pass    =   'secret123';
+            $pass    =   '';
             $charset = 'utf8mb4';
 
             $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

@@ -6,7 +6,7 @@ echo "Starting Database Migration...\n";
 
 $host   = 'localhost';
 $user   = 'root';
-$pass   = 'secret123'; // Replace with your MySQL password
+$pass   = ''; // Replace with your MySQL password
 $dbName = 'project';   // Set to your project database
 
 try {
@@ -25,6 +25,7 @@ try {
     // Drop old incompatible tables if they exist
     $pdo->exec("DROP TABLE IF EXISTS books;");
     $pdo->exec("DROP TABLE IF EXISTS users;");
+    $pdo->exec("DROP TABLE IF EXISTS categories;");
 
     // 2. Create users table with INT UNSIGNED id
     $sqlUsers = "CREATE TABLE users (
@@ -39,30 +40,48 @@ try {
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-    
+
     $pdo->exec($sqlUsers);
     echo "Table 'users' created successfully.\n";
 
-    // 3. Create books table with matching INT UNSIGNED owner_id
+    // 3. Create categories table
+    $sqlCategories = "CREATE TABLE categories (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        icon VARCHAR(255) NULL,
+        slug VARCHAR(100) NOT NULL UNIQUE,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+    $pdo->exec($sqlCategories);
+    echo "Table 'categories' created successfully.\n";
+
+    // 4. Create books table with matching category_id and owner_id
     $sqlBooks = "CREATE TABLE books (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        category_id INT UNSIGNED NOT NULL,
+        owner_id INT UNSIGNED NOT NULL,
         title VARCHAR(255) NOT NULL,
         author VARCHAR(150) NOT NULL,
-        owner_id INT UNSIGNED NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_books_category
+            FOREIGN KEY (category_id)
+            REFERENCES categories(id)
+            ON DELETE RESTRICT
+            ON UPDATE CASCADE,
         CONSTRAINT fk_books_owner 
             FOREIGN KEY (owner_id) 
             REFERENCES users(id) 
             ON DELETE CASCADE 
             ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-    
+
     $pdo->exec($sqlBooks);
     echo "Table 'books' created successfully.\n";
 
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
-
 } catch (PDOException $e) {
     die("Migration failed: " . $e->getMessage() . "\n");
 }
