@@ -95,55 +95,76 @@ class DatabaseSeeder
         echo "Categories seeded successfully.\n";
     }
 
-    private function seedBooks(): void
-    {
-        // Fetch user IDs
-        $stmtUsers = $this->db->query("SELECT id FROM users ORDER BY id ASC LIMIT 2");
-        $userIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
+   private function seedBooks(): void
+{
+    $stmtUsers = $this->db->query("SELECT id FROM users ORDER BY id ASC LIMIT 2");
+    $userIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
 
-        if (empty($userIds)) {
-            echo "No users found to assign books to.\n";
-            return;
-        }
+    if (empty($userIds)) return;
 
-        // Fetch category IDs keyed by slug
-        $stmtCategories = $this->db->query("SELECT slug, id FROM categories");
-        $categories = $stmtCategories->fetchAll(PDO::FETCH_KEY_PAIR);
+    $stmtCategories = $this->db->query("SELECT slug, id FROM categories");
+    $categories = $stmtCategories->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        if (empty($categories)) {
-            echo "No categories found. Run seedCategories first.\n";
-            return;
-        }
+    $defaultCat = $categories['books'] ?? reset($categories);
 
-        $books = [
-            [
-                'title'       => 'Clean Code',
-                'author'      => 'Robert C. Martin',
-                'owner_id'    => $userIds[0],
-                'category_id' => $categories['books'] ?? reset($categories),
-            ],
-            [
-                'title'       => 'Design Patterns',
-                'author'      => 'Erich Gamma et al.',
-                'owner_id'    => $userIds[0],
-                'category_id' => $categories['books'] ?? reset($categories),
-            ],
-            [
-                'title'       => 'The Pragmatic Programmer',
-                'author'      => 'Andrew Hunt & David Thomas',
-                'owner_id'    => $userIds[1] ?? $userIds[0],
-                'category_id' => $categories['books'] ?? reset($categories),
-            ],
-        ];
+    $books = [
+        [
+            'title'          => 'Atomic Habits',
+            'author'         => 'James Clear',
+            'price'          => 180.00,
+            'book_condition' => 'Very good',
+            'listing_type'   => 'BUY',
+            'edition'        => 'MARKETPLACE EDITION',
+            'cover_color'    => '#d4a359',
+            'owner_id'       => $userIds[0],
+            'category_id'    => $defaultCat
+        ],
+        [
+            'title'          => 'The Psychology of Money',
+            'author'         => 'Morgan Housel',
+            'price'          => 150.00,
+            'book_condition' => 'Like new',
+            'listing_type'   => 'SELL',
+            'edition'        => 'MARKETPLACE EDITION',
+            'cover_color'    => '#3b6e8c',
+            'owner_id'       => $userIds[0],
+            'category_id'    => $defaultCat
+        ],
+        [
+            'title'          => 'Clean Code',
+            'author'         => 'Robert C. Martin',
+            'price'          => 210.00,
+            'book_condition' => 'Good condition',
+            'listing_type'   => 'EXCHANGE',
+            'edition'        => 'MARKETPLACE EDITION',
+            'cover_color'    => '#2b3a4a',
+            'owner_id'       => $userIds[1] ?? $userIds[0],
+            'category_id'    => $defaultCat
+        ],
+        [
+            'title'          => 'Deep Work',
+            'author'         => 'Cal Newport',
+            'price'          => 170.00,
+            'book_condition' => 'Very good',
+            'listing_type'   => 'BUY',
+            'edition'        => 'MARKETPLACE EDITION',
+            'cover_color'    => '#a84332',
+            'owner_id'       => $userIds[0],
+            'category_id'    => $defaultCat
+        ]
+    ];
 
-        $sql = "INSERT INTO books (title, author, owner_id, category_id) 
-                VALUES (:title, :author, :owner_id, :category_id)";
-        $stmt = $this->db->prepare($sql);
+    $sql = "INSERT INTO books 
+            (title, author, price, book_condition, listing_type, edition, cover_color, owner_id, category_id) 
+            VALUES 
+            (:title, :author, :price, :book_condition, :listing_type, :edition, :cover_color, :owner_id, :category_id)";
+    
+    $stmt = $this->db->prepare($sql);
 
-        foreach ($books as $book) {
-            $stmt->execute($book);
-        }
-
-        echo "Books seeded successfully.\n";
+    foreach ($books as $book) {
+        $stmt->execute($book);
     }
+
+    echo "Books seeded successfully.\n";
+}
 }

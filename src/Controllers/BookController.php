@@ -21,16 +21,30 @@ class BookController
      */
     public function get(?int $id = null): void
     {
-
-        $currentUser = AuthMiddleware::authenticate();
         try {
             if ($id !== null) {
                 $stmt = $this->db->prepare("
-                    SELECT b.id, b.title, b.author, b.owner_id, u.name as owner_name, b.created_at 
-                    FROM books b 
-                    JOIN users u ON b.owner_id = u.id 
-                    WHERE b.id = :id
-                ");
+                SELECT 
+                    b.id, 
+                    b.title, 
+                    b.author, 
+                    b.price, 
+                    b.book_condition, 
+                    b.listing_type, 
+                    b.edition, 
+                    b.cover_color, 
+                    b.cover_image, 
+                    b.owner_id, 
+                    u.name AS owner_name, 
+                    b.category_id, 
+                    c.name AS category_name, 
+                    c.slug AS category_slug, 
+                    b.created_at 
+                FROM books b 
+                INNER JOIN users u ON b.owner_id = u.id 
+                LEFT JOIN categories c ON b.category_id = c.id 
+                WHERE b.id = :id
+            ");
                 $stmt->execute(['id' => $id]);
                 $book = $stmt->fetch();
 
@@ -44,13 +58,52 @@ class BookController
                 return;
             }
 
-            // Get all books
-            $stmt = $this->db->query("
-                SELECT b.id, b.title, b.author, b.owner_id, u.name as owner_name, b.created_at 
-                FROM books b 
-                JOIN users u ON b.owner_id = u.id 
-                ORDER BY b.id DESC
-            ");
+            // Base query for fetching all books
+            $sql = "
+            SELECT 
+                b.id, 
+                b.title, 
+                b.author, 
+                b.price, 
+                b.book_condition, 
+                b.listing_type, 
+                b.edition, 
+                b.cover_color, 
+                b.cover_image, 
+                b.owner_id, 
+                u.name AS owner_name, 
+                b.category_id, 
+                c.name AS category_name, 
+                c.slug AS category_slug, 
+                b.created_at 
+            FROM books b 
+            INNER JOIN users u ON b.owner_id = u.id 
+            LEFT JOIN categories c ON b.category_id = c.id 
+            WHERE 1=1
+        ";
+
+            $params = [];
+
+            // Dynamic Filtering matching UI Sidebar (Category, Condition, Type)
+            if (!empty($_GET['category'])) {
+                $sql .= " AND c.slug = :category";
+                $params['category'] = $_GET['category'];
+            }
+
+            if (!empty($_GET['condition'])) {
+                $sql .= " AND b.book_condition = :condition";
+                $params['condition'] = $_GET['condition'];
+            }
+
+            if (!empty($_GET['type'])) {
+                $sql .= " AND b.listing_type = :type";
+                $params['type'] = $_GET['type'];
+            }
+
+            $sql .= " ORDER BY b.id DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $books = $stmt->fetchAll();
 
             echo json_encode(["data" => $books]);
