@@ -95,76 +95,110 @@ class DatabaseSeeder
         echo "Categories seeded successfully.\n";
     }
 
-   private function seedBooks(): void
-{
-    $stmtUsers = $this->db->query("SELECT id FROM users ORDER BY id ASC LIMIT 2");
-    $userIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
+    private function seedBooks(): void
+    {
+        // Fetch user IDs dynamically
+        $stmtUsers = $this->db->query("SELECT id FROM users");
+        $userIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
 
-    if (empty($userIds)) return;
+        // Fetch category IDs dynamically
+        $stmtCategories = $this->db->query("SELECT id FROM categories");
+        $categoryIds = $stmtCategories->fetchAll(PDO::FETCH_COLUMN);
 
-    $stmtCategories = $this->db->query("SELECT slug, id FROM categories");
-    $categories = $stmtCategories->fetchAll(PDO::FETCH_KEY_PAIR);
+        if (empty($userIds) || empty($categoryIds)) {
+            echo "Error: Users and Categories must be seeded before Books.\n";
+            return;
+        }
 
-    $defaultCat = $categories['books'] ?? reset($categories);
+        // Reference books list across various categories
+        $bookTemplates = [
+            // Non-Fiction & Self-Help
+            ['title' => 'Atomic Habits', 'author' => 'James Clear'],
+            ['title' => 'The Psychology of Money', 'author' => 'Morgan Housel'],
+            ['title' => 'Deep Work', 'author' => 'Cal Newport'],
+            ['title' => 'Thinking, Fast and Slow', 'author' => 'Daniel Kahneman'],
+            ['title' => 'Rich Dad Poor Dad', 'author' => 'Robert T. Kiyosaki'],
+            ['title' => 'Can\'t Hurt Me', 'author' => 'David Goggins'],
+            ['title' => 'Essentialism', 'author' => 'Greg McKeown'],
+            ['title' => 'Ego Is the Enemy', 'author' => 'Ryan Holiday'],
+            ['title' => 'Outliers', 'author' => 'Malcolm Gladwell'],
+            ['title' => 'Sapiens', 'author' => 'Yuval Noah Harari'],
 
-    $books = [
-        [
-            'title'          => 'Atomic Habits',
-            'author'         => 'James Clear',
-            'price'          => 180.00,
-            'book_condition' => 'Very good',
-            'listing_type'   => 'BUY',
-            'edition'        => 'MARKETPLACE EDITION',
-            'cover_color'    => '#d4a359',
-            'owner_id'       => $userIds[0],
-            'category_id'    => $defaultCat
-        ],
-        [
-            'title'          => 'The Psychology of Money',
-            'author'         => 'Morgan Housel',
-            'price'          => 150.00,
-            'book_condition' => 'Like new',
-            'listing_type'   => 'SELL',
-            'edition'        => 'MARKETPLACE EDITION',
-            'cover_color'    => '#3b6e8c',
-            'owner_id'       => $userIds[0],
-            'category_id'    => $defaultCat
-        ],
-        [
-            'title'          => 'Clean Code',
-            'author'         => 'Robert C. Martin',
-            'price'          => 210.00,
-            'book_condition' => 'Good condition',
-            'listing_type'   => 'EXCHANGE',
-            'edition'        => 'MARKETPLACE EDITION',
-            'cover_color'    => '#2b3a4a',
-            'owner_id'       => $userIds[1] ?? $userIds[0],
-            'category_id'    => $defaultCat
-        ],
-        [
-            'title'          => 'Deep Work',
-            'author'         => 'Cal Newport',
-            'price'          => 170.00,
-            'book_condition' => 'Very good',
-            'listing_type'   => 'BUY',
-            'edition'        => 'MARKETPLACE EDITION',
-            'cover_color'    => '#a84332',
-            'owner_id'       => $userIds[0],
-            'category_id'    => $defaultCat
-        ]
-    ];
+            // Tech & Software Development
+            ['title' => 'Clean Code', 'author' => 'Robert C. Martin'],
+            ['title' => 'The Pragmatic Programmer', 'author' => 'Andrew Hunt'],
+            ['title' => 'Design Patterns', 'author' => 'Erich Gamma'],
+            ['title' => 'Refactoring', 'author' => 'Martin Fowler'],
+            ['title' => 'You Don\'t Know JS', 'author' => 'Kyle Simpson'],
+            ['title' => 'Designing Data-Intensive Applications', 'author' => 'Martin Kleppmann'],
+            ['title' => 'Code Complete', 'author' => 'Steve McConnell'],
+            ['title' => 'Introduction to Algorithms', 'author' => 'Thomas H. Cormen'],
 
-    $sql = "INSERT INTO books 
-            (title, author, price, book_condition, listing_type, edition, cover_color, owner_id, category_id) 
+            // Manga & Light Novels
+            ['title' => 'Attack on Titan Vol. 1', 'author' => 'Hajime Isayama'],
+            ['title' => 'Demon Slayer Vol. 1', 'author' => 'Koyoharu Gotouge'],
+            ['title' => 'One Piece Vol. 1', 'author' => 'Eiichiro Oda'],
+            ['title' => 'Jujutsu Kaisen Vol. 1', 'author' => 'Gege Akutami'],
+            ['title' => 'Chainsaw Man Vol. 1', 'author' => 'Tatsuki Fujimoto'],
+            ['title' => 'Death Note Vol. 1', 'author' => 'Tsugumi Ohba'],
+            ['title' => 'Berserk Deluxe Edition 1', 'author' => 'Kentaro Miura'],
+            ['title' => 'Tokyo Ghoul Vol. 1', 'author' => 'Sui Ishida'],
+
+            // Fiction & Classics
+            ['title' => 'The Great Gatsby', 'author' => 'F. Scott Fitzgerald'],
+            ['title' => '1984', 'author' => 'George Orwell'],
+            ['title' => 'To Kill a Mockingbird', 'author' => 'Harper Lee'],
+            ['title' => 'The Hobbit', 'author' => 'J.R.R. Tolkien'],
+            ['title' => 'Dune', 'author' => 'Frank Herbert'],
+            ['title' => 'Fahrenheit 451', 'author' => 'Ray Bradbury'],
+            ['title' => 'The Alchemist', 'author' => 'Paulo Coelho'],
+            ['title' => 'Crime and Punishment', 'author' => 'Fyodor Dostoevsky']
+        ];
+
+        $conditions = ['Like new', 'Very good', 'Good condition'];
+        $listingTypes = ['BUY', 'SELL', 'EXCHANGE'];
+        $colors = ['#d4a359', '#3b6e8c', '#2b3a4a', '#a84332', '#4a7c59', '#6c5ce7', '#e17055', '#00b894'];
+
+        $sql = "INSERT INTO books 
+            (category_id, owner_id, title, author, price, book_condition, listing_type, edition, cover_image, cover_color) 
             VALUES 
-            (:title, :author, :price, :book_condition, :listing_type, :edition, :cover_color, :owner_id, :category_id)";
-    
-    $stmt = $this->db->prepare($sql);
+            (:category_id, :owner_id, :title, :author, :price, :book_condition, :listing_type, :edition, :cover_image, :cover_color)";
 
-    foreach ($books as $book) {
-        $stmt->execute($book);
+        $stmt = $this->db->prepare($sql);
+
+        // Target generating 150 items
+        $totalRecords = 150;
+        $templateCount = count($bookTemplates);
+
+        for ($i = 0; $i < $totalRecords; $i++) {
+            $template = $bookTemplates[$i % $templateCount];
+
+            // Append a volume or edition suffix after the first cycle to ensure unique entries
+            $suffix = $i >= $templateCount ? " (Vol. " . ceil(($i + 1) / $templateCount) . ")" : "";
+            $title = $template['title'] . $suffix;
+
+            // Random or calculated attributes
+            $categoryId   = $categoryIds[$i % count($categoryIds)];
+            $ownerId      = $userIds[$i % count($userIds)];
+            $price        = rand(60, 350); // Generates price between 60 MAD and 350 MAD
+            $condition    = $conditions[$i % count($conditions)];
+            $listingType  = $listingTypes[$i % count($listingTypes)];
+            $coverColor   = $colors[$i % count($colors)];
+
+            $stmt->execute([
+                'category_id'    => $categoryId,
+                'owner_id'       => $ownerId,
+                'title'          => $title,
+                'author'         => $template['author'],
+                'price'          => sprintf('%.2f', $price),
+                'book_condition' => $condition,
+                'listing_type'   => $listingType,
+                'edition'        => 'MARKETPLACE EDITION',
+                'cover_image'    => null,
+                'cover_color'    => $coverColor
+            ]);
+        }
+
+        echo "150 books seeded successfully!\n";
     }
-
-    echo "Books seeded successfully.\n";
-}
 }
