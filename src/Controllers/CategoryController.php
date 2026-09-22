@@ -63,7 +63,11 @@ class CategoryController
             }
 
             // Get all categories
-            $stmt = $this->db->query("SELECT * FROM categories ORDER BY id ASC");
+            $stmt = $this->db->query("SELECT c.*, COUNT(b.id) AS listing_count 
+        FROM categories c 
+        LEFT JOIN books b ON c.id = b.category_id 
+        GROUP BY c.id 
+        ORDER BY c.id ASC");
             $categories = $stmt->fetchAll();
 
             echo json_encode(["data" => $categories]);
