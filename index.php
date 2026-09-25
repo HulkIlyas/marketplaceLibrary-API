@@ -1,5 +1,20 @@
 <?php
 
+// Let PHP's built-in development server serve existing public files directly.
+if (PHP_SAPI === 'cli-server') {
+    $requestedPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    $publicRoot = realpath(__DIR__ . '/public');
+    $requestedFile = realpath(__DIR__ . str_replace('/', DIRECTORY_SEPARATOR, $requestedPath));
+    if (
+        $publicRoot !== false
+        && $requestedFile !== false
+        && is_file($requestedFile)
+        && str_starts_with($requestedFile, $publicRoot . DIRECTORY_SEPARATOR)
+    ) {
+        return false;
+    }
+}
+
 // ============================================================
 // 1. CORS
 // ============================================================
@@ -61,6 +76,12 @@ $inputData = json_decode(
 //
 
 $routes = [
+    [
+        'method' => 'GET',
+        'path' => '/books/mine',
+        'controller' => \App\Controllers\BookController::class,
+        'action' => 'mine',
+    ],
 
     [
         'method'     => 'POST',

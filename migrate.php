@@ -23,6 +23,7 @@ try {
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
     // Drop old incompatible tables if they exist
+    $pdo->exec("DROP TABLE IF EXISTS book_images;");
     $pdo->exec("DROP TABLE IF EXISTS books;");
     $pdo->exec("DROP TABLE IF EXISTS users;");
     $pdo->exec("DROP TABLE IF EXISTS categories;");
@@ -64,10 +65,14 @@ try {
     owner_id INT UNSIGNED NOT NULL,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(150) NOT NULL,
+    isbn VARCHAR(20) NULL,
+    genre VARCHAR(100) NULL,
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     book_condition VARCHAR(50) NOT NULL DEFAULT 'Good condition',
-    listing_type ENUM('BUY', 'SELL', 'EXCHANGE') NOT NULL DEFAULT 'BUY',
+    listing_type ENUM('BUY', 'SELL', 'EXCHANGE', 'SELL_OR_EXCHANGE') NOT NULL DEFAULT 'BUY',
     edition VARCHAR(100) NULL DEFAULT 'MARKETPLACE EDITION',
+    description TEXT NULL,
+    city VARCHAR(100) NULL,
     cover_image VARCHAR(255) NULL,
     cover_color VARCHAR(20) NULL DEFAULT '#d4a359',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -86,6 +91,23 @@ try {
 
     $pdo->exec($sqlBooks);
     echo "Table 'books' created successfully.\n";
+
+    $sqlBookImages = "CREATE TABLE book_images (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        book_id INT UNSIGNED NOT NULL,
+        image_path VARCHAR(255) NOT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        is_cover BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_book_images_book_sort (book_id, sort_order),
+        CONSTRAINT fk_book_images_book
+            FOREIGN KEY (book_id)
+            REFERENCES books(id)
+            ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+    $pdo->exec($sqlBookImages);
+    echo "Table 'book_images' created successfully.\n";
 
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 } catch (PDOException $e) {
