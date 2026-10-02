@@ -96,6 +96,27 @@ $routes = [
         'controller' => \App\Controllers\UserController::class,
         'action'     => 'login',
     ],
+    // --- ORDER ROUTES ---
+    [
+        'method'     => 'POST',
+        'path'       => '/orders',
+        'controller' => \App\Controllers\OrderController::class,
+        'action'     => 'create',
+    ],
+
+    [
+        'method'     => 'GET',
+        'path'       => '/orders/{id}',
+        'controller' => \App\Controllers\OrderController::class,
+        'action'     => 'get',
+    ],
+
+    [
+        'method'     => 'PUT',
+        'path'       => '/orders/{id}/status',
+        'controller' => \App\Controllers\OrderController::class,
+        'action'     => 'updateStatus',
+    ],
 
 
 

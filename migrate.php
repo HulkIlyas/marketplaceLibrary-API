@@ -23,6 +23,8 @@ try {
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
     // Drop old incompatible tables if they exist
+    $pdo->exec("DROP TABLE IF EXISTS order_items;");
+    $pdo->exec("DROP TABLE IF EXISTS orders;");
     $pdo->exec("DROP TABLE IF EXISTS book_images;");
     $pdo->exec("DROP TABLE IF EXISTS books;");
     $pdo->exec("DROP TABLE IF EXISTS users;");
@@ -60,38 +62,39 @@ try {
 
     // 4. Create books table with matching category_id and owner_id
     $sqlBooks = "CREATE TABLE books (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    category_id INT UNSIGNED NOT NULL,
-    owner_id INT UNSIGNED NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    author VARCHAR(150) NOT NULL,
-    isbn VARCHAR(20) NULL,
-    genre VARCHAR(100) NULL,
-    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    book_condition VARCHAR(50) NOT NULL DEFAULT 'Good condition',
-    listing_type ENUM('BUY', 'SELL', 'EXCHANGE', 'SELL_OR_EXCHANGE') NOT NULL DEFAULT 'BUY',
-    edition VARCHAR(100) NULL DEFAULT 'MARKETPLACE EDITION',
-    description TEXT NULL,
-    city VARCHAR(100) NULL,
-    cover_image VARCHAR(255) NULL,
-    cover_color VARCHAR(20) NULL DEFAULT '#d4a359',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_books_category
-        FOREIGN KEY (category_id)
-        REFERENCES categories(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-    CONSTRAINT fk_books_owner 
-        FOREIGN KEY (owner_id) 
-        REFERENCES users(id) 
-        ON DELETE CASCADE 
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        category_id INT UNSIGNED NOT NULL,
+        owner_id INT UNSIGNED NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        author VARCHAR(150) NOT NULL,
+        isbn VARCHAR(20) NULL,
+        genre VARCHAR(100) NULL,
+        price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        book_condition VARCHAR(50) NOT NULL DEFAULT 'Good condition',
+        listing_type ENUM('BUY', 'SELL', 'EXCHANGE', 'SELL_OR_EXCHANGE') NOT NULL DEFAULT 'BUY',
+        edition VARCHAR(100) NULL DEFAULT 'MARKETPLACE EDITION',
+        description TEXT NULL,
+        city VARCHAR(100) NULL,
+        cover_image VARCHAR(255) NULL,
+        cover_color VARCHAR(20) NULL DEFAULT '#d4a359',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_books_category
+            FOREIGN KEY (category_id)
+            REFERENCES categories(id)
+            ON DELETE RESTRICT
+            ON UPDATE CASCADE,
+        CONSTRAINT fk_books_owner 
+            FOREIGN KEY (owner_id) 
+            REFERENCES users(id) 
+            ON DELETE CASCADE 
+            ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
     $pdo->exec($sqlBooks);
     echo "Table 'books' created successfully.\n";
 
+    // 5. Create book_images table
     $sqlBookImages = "CREATE TABLE book_images (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         book_id INT UNSIGNED NOT NULL,
@@ -108,6 +111,52 @@ try {
 
     $pdo->exec($sqlBookImages);
     echo "Table 'book_images' created successfully.\n";
+
+    // 6. Create orders table
+    $sqlOrders = "CREATE TABLE orders (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NULL,
+        full_name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        address VARCHAR(255) NOT NULL,
+        city VARCHAR(100) NOT NULL,
+        postal_code VARCHAR(20) NULL,
+        total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        status ENUM('pending', 'processing', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_orders_user
+            FOREIGN KEY (user_id)
+            REFERENCES users(id)
+            ON DELETE SET NULL
+            ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+    $pdo->exec($sqlOrders);
+    echo "Table 'orders' created successfully.\n";
+
+    // 7. Create order_items table
+    $sqlOrderItems = "CREATE TABLE order_items (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        order_id INT UNSIGNED NOT NULL,
+        book_id INT UNSIGNED NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_order_items_order
+            FOREIGN KEY (order_id)
+            REFERENCES orders(id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE,
+        CONSTRAINT fk_order_items_book
+            FOREIGN KEY (book_id)
+            REFERENCES books(id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+    $pdo->exec($sqlOrderItems);
+    echo "Table 'order_items' created successfully.\n";
 
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 } catch (PDOException $e) {
