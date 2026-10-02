@@ -77,6 +77,15 @@ class BookController
                 $whereSql .= ' AND b.listing_type = :type';
                 $params['type'] = $_GET['type'];
             }
+            $query = trim((string) ($_GET['q'] ?? ''));
+            if ($query !== '') {
+                $whereSql .= ' AND (b.title LIKE :search_title OR b.author LIKE :search_author OR b.isbn LIKE :search_isbn OR b.genre LIKE :search_genre)';
+                $search = '%' . $query . '%';
+                $params['search_title'] = $search;
+                $params['search_author'] = $search;
+                $params['search_isbn'] = $search;
+                $params['search_genre'] = $search;
+            }
 
             $countSql = 'SELECT COUNT(b.id) FROM books b LEFT JOIN categories c ON b.category_id = c.id' . $whereSql;
             $countStmt = $this->db->prepare($countSql);
