@@ -62,7 +62,7 @@ class BookController
             $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
             $limit = isset($_GET['limit']) ? max(1, min(100, (int) $_GET['limit'])) : 6;
             $offset = ($page - 1) * $limit;
-            $whereSql = " WHERE b.listing_status = 'ACTIVE'";
+            $whereSql = " WHERE b.listing_status = 'available'";
             $params = [];
 
             if (!empty($_GET['category'])) {
