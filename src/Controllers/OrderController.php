@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Config\Database;
@@ -65,7 +66,7 @@ class OrderController
             // 1. Insert order header
             $sqlOrder = "INSERT INTO orders (user_id, full_name, email, address, city, postal_code, total_amount)
                          VALUES (:user_id, :full_name, :email, :address, :city, :postal_code, :total_amount)";
-            
+
             $stmtOrder = $this->db->prepare($sqlOrder);
             $stmtOrder->execute([
                 ':user_id'      => $userId,
@@ -158,6 +159,114 @@ class OrderController
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(["error" => $e->getMessage()]);
+        }
+    }
+
+    public function mine(?int $id = null): void
+    {
+        $currentUser = AuthMiddleware::authenticate();
+        $userId = $currentUser['user_id'];
+
+        try {
+            // Single Order Detail
+            if ($id !== null) {
+                $stmt = $this->db->prepare("
+                SELECT *
+                FROM orders
+                WHERE id = :id
+                  AND user_id = :user_id
+            ");
+
+                $stmt->execute([
+                    'id' => $id,
+                    'user_id' => $userId
+                ]);
+
+                $order = $stmt->fetch();
+
+                if (!$order) {
+                    http_response_code(404);
+                    echo json_encode([
+                        "error" => "Order not found"
+                    ]);
+                    return;
+                }
+
+                // Fetch line items
+                $itemStmt = $this->db->prepare("
+                SELECT
+                    id,
+                    order_id,
+                    book_id,
+                    title,
+                    price
+                FROM order_items
+                WHERE order_id = :order_id
+            ");
+
+                $itemStmt->execute([
+                    'order_id' => $id
+                ]);
+
+                $order['items'] = $itemStmt->fetchAll();
+
+                echo json_encode([
+                    "data" => $order
+                ]);
+
+                return;
+            }
+
+            // List all orders for authenticated user
+            $stmt = $this->db->prepare("
+            SELECT
+                o.*,
+                COUNT(oi.id) AS total_items
+            FROM orders o
+            LEFT JOIN order_items oi
+                ON o.id = oi.order_id
+            WHERE o.user_id = :user_id
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        ");
+
+            $stmt->execute([
+                'user_id' => $userId
+            ]);
+
+            $orders = $stmt->fetchAll();
+
+            // Fetch items for every order
+            $itemStmt = $this->db->prepare("
+            SELECT
+                id,
+                order_id,
+                book_id,
+                title,
+                price
+            FROM order_items
+            WHERE order_id = :order_id
+        ");
+
+            foreach ($orders as &$order) {
+                $itemStmt->execute([
+                    'order_id' => $order['id']
+                ]);
+
+                $order['items'] = $itemStmt->fetchAll();
+            }
+
+            unset($order);
+
+            echo json_encode([
+                "data" => $orders
+            ]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+
+            echo json_encode([
+                "error" => $e->getMessage()
+            ]);
         }
     }
 

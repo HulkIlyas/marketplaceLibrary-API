@@ -19,11 +19,22 @@ class BookController
         'image/webp' => 'webp',
     ];
     private const ALLOWED_GENRES = [
-        'Fiction', 'Non-fiction', 'Education', 'Technology', 'Business',
-        'Self-development', 'History', 'Manga', 'Other',
+        'Fiction',
+        'Non-fiction',
+        'Education',
+        'Technology',
+        'Business',
+        'Self-development',
+        'History',
+        'Manga',
+        'Other',
     ];
     private const ALLOWED_CONDITIONS = [
-        'New', 'Like New', 'Very Good', 'Good', 'Acceptable',
+        'New',
+        'Like New',
+        'Very Good',
+        'Good',
+        'Acceptable',
     ];
 
     private PDO $db;
@@ -342,11 +353,13 @@ class BookController
 
     private function validateListing(array $data): array
     {
-        foreach ([
-            'title' => 'Title is required',
-            'author' => 'Author is required',
-            'description' => 'Description is required',
-        ] as $field => $message) {
+        foreach (
+            [
+                'title' => 'Title is required',
+                'author' => 'Author is required',
+                'description' => 'Description is required',
+            ] as $field => $message
+        ) {
             if (!isset($data[$field]) || trim((string) $data[$field]) === '') {
                 return ['error' => $message];
             }
