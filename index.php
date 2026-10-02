@@ -76,6 +76,10 @@ $inputData = json_decode(
 //
 
 $routes = [
+    ['method'=>'POST','path'=>'/orders','controller'=>\App\Controllers\OrderController::class,'action'=>'create'],
+    ['method'=>'GET','path'=>'/orders/mine','controller'=>\App\Controllers\OrderController::class,'action'=>'mine'],
+    ['method'=>'GET','path'=>'/orders/seller','controller'=>\App\Controllers\OrderController::class,'action'=>'seller'],
+    ['method'=>'PATCH','path'=>'/orders/items/{id}/status','controller'=>\App\Controllers\OrderController::class,'action'=>'status'],
     [
         'method' => 'GET',
         'path' => '/books/mine',
@@ -261,6 +265,13 @@ foreach ($routes as $route) {
 // ============================================================
 // 7. Root API
 // ============================================================
+
+// Orders are exposed only through the explicit authenticated routes above.
+if ($normalizedPath === '/orders' || str_starts_with($normalizedPath, '/orders/')) {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method or order route not supported']);
+    exit;
+}
 
 if (
     empty($normalizedPath) ||

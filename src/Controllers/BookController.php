@@ -62,7 +62,7 @@ class BookController
             $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
             $limit = isset($_GET['limit']) ? max(1, min(100, (int) $_GET['limit'])) : 6;
             $offset = ($page - 1) * $limit;
-            $whereSql = ' WHERE 1=1';
+            $whereSql = " WHERE b.listing_status = 'ACTIVE'";
             $params = [];
 
             if (!empty($_GET['category'])) {
@@ -292,6 +292,13 @@ class BookController
             $book = $this->ownedBook($id, $ownerId, 'delete', true);
             if (!$book) {
                 $this->db->rollBack();
+                return;
+            }
+            $ordered = $this->db->prepare('SELECT COUNT(*) FROM order_items WHERE book_id = ?');
+            $ordered->execute([$id]);
+            if ((int)$ordered->fetchColumn() > 0) {
+                $this->db->rollBack();
+                $this->error('Listings referenced by orders must be retained for order history', 409);
                 return;
             }
             $images = $this->db->prepare('SELECT image_path FROM book_images WHERE book_id = :id');
